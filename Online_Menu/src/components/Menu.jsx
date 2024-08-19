@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import MenuItem from './MenuItem';
 
 function Menu() {
@@ -8,12 +8,24 @@ function Menu() {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'menus'), (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
+      const categories = snapshot.docs.map(doc => ({
         id: doc.id,
         category: doc.id,
         items: doc.data().items || []
       }));
-      setMenuItems(items);
+
+      const allItems = [];
+      categories.forEach(category => {
+        const itemsRef = collection(db, 'menus', category.id, 'items');
+        onSnapshot(itemsRef, (itemSnapshot) => {
+          const items = itemSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          allItems.push({ category: category.category, items });
+          setMenuItems([...allItems]);
+        });
+      });
     });
 
     return () => unsubscribe();

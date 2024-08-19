@@ -13,21 +13,40 @@ function Admin() {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'menus'), (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
+      const itemsData = snapshot.docs.map(doc => ({
         id: doc.id,
         category: doc.id,
-        items: doc.data().items || []
+        items: []
       }));
-      setMenuItems(items);
+      setMenuItems(itemsData);
+      
+      itemsData.forEach((category) => {
+        const itemsCollection = collection(db, 'menus', category.id, 'items');
+        onSnapshot(itemsCollection, (itemSnapshot) => {
+          const items = itemSnapshot.docs.map(itemDoc => ({
+            id: itemDoc.id,
+            ...itemDoc.data()
+          }));
+          setMenuItems(prevItems => 
+            prevItems.map(cat => 
+              cat.id === category.id ? { ...cat, items } : cat
+            )
+          );
+        });
+      });
     });
 
     return () => unsubscribe();
   }, []);
 
   const addItem = async () => {
-    const categoryDoc = doc(db, 'menus', selectedCategory);
-    await addDoc(collection(categoryDoc, 'items'), newItem);
-    setNewItem({ name: '', description: '', price: '' });
+    if (newItem.name && newItem.description && newItem.price) {
+      const categoryDoc = doc(db, 'menus', selectedCategory);
+      await addDoc(collection(categoryDoc, 'items'), newItem);
+      setNewItem({ name: '', description: '', price: '' });
+    } else {
+      alert('Por favor, preencha todos os campos.');
+    }
   };
 
   const deleteItem = async (categoryId, itemId) => {
@@ -88,7 +107,7 @@ function Admin() {
       {menuItems.map(({ category, items }) => (
         <div key={category} className="mb-5">
           <h2 className="text-2xl font-bold mb-2 capitalize">{category.replace('-', ' ')}</h2>
-          {items && items.map(item => (
+          {items.map(item => (
             <div key={item.id} className="mb-4 p-4 border rounded">
               <h3 className="text-xl font-bold">{item.name}</h3>
               <p>{item.description}</p>
@@ -100,7 +119,12 @@ function Admin() {
                 Eliminar
               </button>
               <button
-                onClick={() => updateItem(category, item.id, { ...item, price: prompt('Novo preço:', item.price) })}
+                onClick={() => {
+                  const updatedPrice = prompt('Novo preço:', item.price);
+                  if (updatedPrice) {
+                    updateItem(category, item.id, { ...item, price: updatedPrice });
+                  }
+                }}
                 className="bg-blue-500 text-white p-2 rounded mt-2 ml-2"
               >
                 Editar Preço

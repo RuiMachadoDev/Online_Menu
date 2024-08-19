@@ -3,12 +3,12 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_STORAGE_BUCKET",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-  appId: "SEU_APP_ID"
+    apiKey: "AIzaSyDLk_wcH40OKlV_5kPKrvDal5m8nBlX6Fg",
+    authDomain: "hrcsonlinemenu.firebaseapp.com",
+    projectId: "hrcsonlinemenu",
+    storageBucket: "hrcsonlinemenu.appspot.com",
+    messagingSenderId: "148845543687",
+    appId: "1:148845543687:web:e0618fdd56906f177d45a2"
 };
 
 const app = initializeApp(firebaseConfig);
