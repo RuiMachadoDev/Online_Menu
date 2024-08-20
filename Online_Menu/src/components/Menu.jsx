@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import { collection, doc, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import MenuItem from './MenuItem';
 
 function Menu() {
@@ -11,39 +11,55 @@ function Menu() {
       const categories = snapshot.docs.map(doc => ({
         id: doc.id,
         category: doc.id,
-        items: doc.data().items || []
+        items: []
       }));
 
-      const allItems = [];
-      categories.forEach(category => {
-        const itemsRef = collection(db, 'menus', category.id, 'items');
-        onSnapshot(itemsRef, (itemSnapshot) => {
-          const items = itemSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
+      categories.forEach((category) => {
+        const itemsCollection = collection(db, 'menus', category.id, 'items');
+        onSnapshot(itemsCollection, (itemSnapshot) => {
+          const items = itemSnapshot.docs.map(itemDoc => ({
+            id: itemDoc.id,
+            ...itemDoc.data()
           }));
-          allItems.push({ category: category.category, items });
-          setMenuItems([...allItems]);
+          setMenuItems(prevItems => 
+            prevItems.map(cat => 
+              cat.id === category.id ? { ...cat, items } : cat
+            )
+          );
         });
       });
+
+      setMenuItems(categories);
     });
 
     return () => unsubscribe();
   }, []);
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-screen-lg mx-auto">
       <h1 className="text-4xl font-bold text-center mb-10">Cardápio do Restaurante</h1>
-      {menuItems.map(({ category, items }) => (
-        <div key={category} className="mb-10">
-          <h2 className="text-3xl font-bold mb-4 capitalize">{category.replace('-', ' ')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {items.map((item, index) => (
-              <MenuItem key={index} name={item.name} description={item.description} price={item.price} />
-            ))}
+      {menuItems.length > 0 ? (
+        menuItems.map(({ category, items }) => (
+          <div key={category} className="mb-5">
+            <details className="bg-gray-200 rounded-lg shadow-md p-4">
+              <summary className="text-2xl font-bold cursor-pointer capitalize">
+                {category.replace('-', ' ')}
+              </summary>
+              <div className="mt-4">
+                {items.length > 0 ? (
+                  items.map(item => (
+                    <MenuItem key={item.id} name={item.name} description={item.description} price={item.price} />
+                  ))
+                ) : (
+                  <p className="text-gray-600">Nenhum prato disponível nesta categoria.</p>
+                )}
+              </div>
+            </details>
           </div>
-        </div>
-      ))}
+        ))
+      ) : (
+        <p className="text-gray-600 text-center">Nenhuma categoria disponível.</p>
+      )}
     </div>
   );
 }
