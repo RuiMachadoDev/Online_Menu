@@ -48,7 +48,13 @@ function Menu() {
               <div className="mt-4">
                 {items.length > 0 ? (
                   items.map(item => (
-                    <MenuItem key={item.id} name={item.name} description={item.description} price={item.price} />
+                    <MenuItem
+                      key={item.id}
+                      name={item.name}
+                      description={item.description}
+                      price={item.price}
+                      image={item.image} // Passando a imagem para o MenuItem
+                    />
                   ))
                 ) : (
                   <p className="text-gray-600">Nenhum prato disponível nesta categoria.</p>

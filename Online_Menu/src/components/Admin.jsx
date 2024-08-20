@@ -4,17 +4,19 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const categories = ['entradas', 'pratos-principais', 'sobremesas'];
 
 function Admin() {
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
-  const [newItem, setNewItem] = useState({ name: '', description: '', price: '' });
+  const [newItem, setNewItem] = useState({ name: '', description: '', price: '', image: null });
   const [menuItems, setMenuItems] = useState([]);
   const [view, setView] = useState('list');
   const [editingItem, setEditingItem] = useState(null); // Estado para edição
   const navigate = useNavigate();
   const auth = getAuth();
+  const storage = getStorage();
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'menus'), (snapshot) => {
@@ -45,19 +47,43 @@ function Admin() {
     return () => unsubscribe();
   }, []);
 
+  const handleLogout = () => {
+    auth.signOut().then(() => {
+      navigate('/login');
+    }).catch((error) => {
+      console.error("Erro ao fazer logout:", error);
+    });
+  };
+
   const handleAddItem = async () => {
     if (auth.currentUser) {
       if (newItem.name && newItem.description && newItem.price) {
+        let imageUrl = null;
+        
+        if (newItem.image) {
+          // Upload da imagem para o Firebase Storage
+          const imageRef = ref(storage, `menu-images/${newItem.image.name}`);
+          await uploadBytes(imageRef, newItem.image);
+          imageUrl = await getDownloadURL(imageRef);
+        }
+
+        const itemData = {
+          name: newItem.name,
+          description: newItem.description,
+          price: newItem.price,
+          image: imageUrl,
+        };
+
         const categoryDoc = collection(db, 'menus', selectedCategory, 'items');
         if (editingItem) {
           // Se estiver editando, atualiza o item
-          await updateDoc(doc(categoryDoc, editingItem.id), newItem);
+          await updateDoc(doc(categoryDoc, editingItem.id), itemData);
           setEditingItem(null);
         } else {
           // Caso contrário, adiciona um novo item
-          await addDoc(categoryDoc, newItem);
+          await addDoc(categoryDoc, itemData);
         }
-        setNewItem({ name: '', description: '', price: '' });
+        setNewItem({ name: '', description: '', price: '', image: null });
         alert('Prato salvo com sucesso!');
         setView('list');
       } else {
@@ -83,14 +109,19 @@ function Admin() {
 
   const handleEditItem = (categoryId, item) => {
     setEditingItem({ ...item, categoryId });
-    setNewItem({ name: item.name, description: item.description, price: item.price });
+    setNewItem({ name: item.name, description: item.description, price: item.price, image: null });
     setSelectedCategory(categoryId);
     setView('add');
   };
 
-  const handleLogout = () => {
-    auth.signOut();
-    navigate('/login');
+  const handleCancel = () => {
+    setEditingItem(null);
+    setNewItem({ name: '', description: '', price: '', image: null });
+    setView('list');
+  };
+
+  const handleFileChange = (e) => {
+    setNewItem({ ...newItem, image: e.target.files[0] });
   };
 
   return (
@@ -107,38 +138,54 @@ function Admin() {
         {view === 'add' && (
           <div>
             <h1 className="text-3xl font-bold mb-5">{editingItem ? 'Editar Prato' : 'Adicionar Novo Prato'}</h1>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white"
-            >
-              {categories.map(category => (
-                <option key={category} value={category}>{category.replace('-', ' ')}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white focus:outline-none focus:border-gray-500 appearance-none"
+                style={{ backgroundImage: 'url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE0IDE0Ij4gPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik06IDFsNCA0IDQtNCIvPiA8L3N2Zz4=)', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1rem' }}
+              >
+                {categories.map(category => (
+                  <option key={category} value={category}>{category.replace('-', ' ')}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg className="fill-current h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M7 10l5 5 5-5H7z"/></svg>
+              </div>
+            </div>
             <input
               type="text"
               placeholder="Nome"
-              className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white"
+              className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white focus:outline-none focus:border-gray-500"
               value={newItem.name}
               onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
             />
             <textarea
               placeholder="Descrição"
-              className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white"
+              className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white focus:outline-none focus:border-gray-500"
               value={newItem.description}
               onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
             />
             <input
               type="text"
               placeholder="Preço"
-              className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white"
+              className="block w-full p-3 border rounded mb-4 bg-gray-800 text-white focus:outline-none focus:border-gray-500"
               value={newItem.price}
               onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
             />
-            <button onClick={handleAddItem} className="bg-green-600 hover:bg-green-700 text-white p-3 rounded transition w-full">
-              {editingItem ? 'Salvar Alterações' : 'Adicionar Prato'}
-            </button>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="block w-full text-gray-400 mb-4"
+            />
+            <div className="flex justify-between">
+              <button onClick={handleAddItem} className="bg-green-600 hover:bg-green-700 text-white p-3 rounded transition w-full mr-2">
+                {editingItem ? 'Salvar Alterações' : 'Adicionar Prato'}
+              </button>
+              <button onClick={handleCancel} className="bg-red-600 hover:bg-red-700 text-white p-3 rounded transition w-full ml-2">
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
@@ -156,6 +203,9 @@ function Admin() {
                           <h3 className="text-lg font-bold">{item.name}</h3>
                           <p>{item.description}</p>
                           <p>Preço: €{item.price}</p>
+                          {item.image && (
+                            <img src={item.image} alt={item.name} className="h-20 mt-2 rounded-lg" />
+                          )}
                         </div>
                         <div className="flex space-x-4">
                           <button onClick={() => handleEditItem(category, item)} className="text-blue-400 hover:text-blue-600 transition">
