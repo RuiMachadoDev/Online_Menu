@@ -7,4 +7,5 @@ export default defineConfig({
   build: {
     outDir: 'dist', // Diretório de saída para os arquivos de produção
   },
+  base: './',
 })
