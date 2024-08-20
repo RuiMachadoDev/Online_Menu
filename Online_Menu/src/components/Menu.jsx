@@ -37,15 +37,15 @@ function Menu() {
 
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
-      <h1 className="text-4xl font-bold text-center mb-10">Cardápio do Restaurante</h1>
+      <h1 className="text-4xl font-bold text-center mb-10">Menu</h1>
       {menuItems.length > 0 ? (
         menuItems.map(({ category, items }) => (
-          <div key={category} className="mb-5">
-            <details className="bg-gray-200 rounded-lg shadow-md p-4">
+          <div key={category} className="mb-8">
+            <details className="bg-gray-100 rounded-lg shadow-md p-4">
               <summary className="text-2xl font-bold cursor-pointer capitalize">
                 {category.replace('-', ' ')}
               </summary>
-              <div className="mt-4">
+              <div className="mt-4 space-y-6">
                 {items.length > 0 ? (
                   items.map(item => (
                     <MenuItem
