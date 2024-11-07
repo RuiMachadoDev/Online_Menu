@@ -1,7 +1,11 @@
 {
-    "routes": [
-      { "handle": "filesystem" },
-      { "src": "/(.*)", "dest": "/" }
-    ]
-  }
-  
+  "build": {
+    "env": {
+      "NODE_ENV": "development"
+    }
+  },
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/" }
+  ]
+}
