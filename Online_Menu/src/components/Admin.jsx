@@ -5,16 +5,21 @@ import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from 'fireb
 import { getAuth } from 'firebase/auth';
 import { FaEdit, FaTrash, FaTimes, FaSun, FaMoon } from 'react-icons/fa';
 import { getStorage, ref, deleteObject, uploadBytes, getDownloadURL } from 'firebase/storage';
+import Modal from 'react-modal';
 
 const categories = ['entradas', 'pratos-principais', 'sobremesas'];
+
+Modal.setAppElement('#root');
 
 function Admin() {
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
   const [newItem, setNewItem] = useState({ name: '', description: '', price: '', image: null });
   const [menuItems, setMenuItems] = useState([]);
   const [view, setView] = useState('list');
-  const [editingItem, setEditingItem] = useState(null); // Estado para edição
-  const [darkMode, setDarkMode] = useState(false); // Estado para alternância de tema
+  const [editingItem, setEditingItem] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const navigate = useNavigate();
   const auth = getAuth();
   const storage = getStorage();
@@ -58,20 +63,25 @@ function Admin() {
       });
   };
 
-  const handleDeleteImage = async (itemId, imageUrl) => {
-    if (window.confirm('Tem certeza que deseja excluir esta imagem?')) {
+  const handleDeleteImage = (itemId, imageUrl) => {
+    setShowDeleteModal(true);
+    setItemToDelete({ itemId, imageUrl });
+  };
+
+  const confirmDeleteImage = async () => {
+    if (itemToDelete) {
       try {
-        const imageRef = ref(storage, imageUrl);
+        const imageRef = ref(storage, itemToDelete.imageUrl);
         await deleteObject(imageRef);
-
-        const categoryDoc = doc(db, 'menus', selectedCategory, 'items', itemId);
+        const categoryDoc = doc(db, 'menus', selectedCategory, 'items', itemToDelete.itemId);
         await updateDoc(categoryDoc, { image: null });
-
         alert('Imagem excluída com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir a imagem:', error);
         alert('Falha ao excluir a imagem.');
       }
+      setShowDeleteModal(false);
+      setItemToDelete(null);
     }
   };
 
@@ -82,7 +92,6 @@ function Admin() {
         
         if (newItem.image) {
           try {
-            // Upload da imagem para o Firebase Storage
             const imageRef = ref(storage, `menu-images/${newItem.image.name}`);
             await uploadBytes(imageRef, newItem.image);
             imageUrl = await getDownloadURL(imageRef);
@@ -102,11 +111,9 @@ function Admin() {
 
         const categoryDoc = collection(db, 'menus', selectedCategory, 'items');
         if (editingItem) {
-          // Se estiver editando, atualiza o item
           await updateDoc(doc(categoryDoc, editingItem.id), itemData);
           setEditingItem(null);
         } else {
-          // Caso contrário, adiciona um novo item
           await addDoc(categoryDoc, itemData);
         }
         setNewItem({ name: '', description: '', price: '', image: null });
@@ -121,19 +128,22 @@ function Admin() {
     }
   };
 
-  const handleDeleteItem = async (categoryId, itemId, imageUrl) => {
-    if (auth.currentUser) {
-      if (window.confirm('Tem certeza que deseja excluir este prato?')) {
-        const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
-        if (imageUrl) {
-          const imageRef = ref(storage, imageUrl);
-          await deleteObject(imageRef); // Exclui a imagem do Firebase Storage
-        }
-        await deleteDoc(itemDoc);
+  const handleDeleteItem = (categoryId, itemId, imageUrl) => {
+    setShowDeleteModal(true);
+    setItemToDelete({ itemId, imageUrl, categoryId });
+  };
+
+  const confirmDeleteItem = async () => {
+    if (itemToDelete) {
+      const { itemId, imageUrl, categoryId } = itemToDelete;
+      if (imageUrl) {
+        const imageRef = ref(storage, imageUrl);
+        await deleteObject(imageRef);
       }
-    } else {
-      alert('Você precisa estar autenticado para excluir um prato.');
-      navigate('/login');
+      const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
+      await deleteDoc(itemDoc);
+      setShowDeleteModal(false);
+      setItemToDelete(null);
     }
   };
 
@@ -174,6 +184,37 @@ function Admin() {
         </div>
       </nav>
 
+      <Modal
+        isOpen={showDeleteModal}
+        onRequestClose={() => setShowDeleteModal(false)}
+        className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+      >
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-xs mx-auto">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4 text-center">Confirmação de Exclusão</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">Tem certeza que deseja excluir este item?</p>
+          <div className="flex justify-center space-x-3">
+            <button
+              onClick={confirmDeleteImage}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition text-sm"
+            >
+              Excluir Imagem
+            </button>
+            <button
+              onClick={confirmDeleteItem}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-sm"
+            >
+              Excluir Item
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1 rounded transition text-sm"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <div className="p-6">
         {view === 'add' && (
           <div>
@@ -183,15 +224,11 @@ function Admin() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className={`block w-full p-3 border rounded mb-4 ${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-900'} focus:outline-none focus:border-gray-500 appearance-none`}
-                style={{ backgroundImage: 'url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE0IDE0Ij4gPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik06IDFsNCA0IDQtNCIvPiA8L3N2Zz4=)', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1rem' }}
               >
                 {categories.map(category => (
                   <option key={category} value={category}>{category.replace('-', ' ')}</option>
                 ))}
               </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                <svg className="fill-current h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M7 10l5 5 5-5H7z"/></svg>
-              </div>
             </div>
             <input
               type="text"
@@ -238,28 +275,28 @@ function Admin() {
                   <h2 className="text-xl font-bold mb-2 capitalize">{category.replace('-', ' ')}</h2>
                   {items.length > 0 ? (
                     items.map(item => (
-                      <div key={item.id} className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-300 text-gray-900'} shadow-md rounded-lg p-4 mb-4 flex items-center justify-between`}>
-                        <div className="flex items-center">
+                      <div key={item.id} className={`flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 bg-gray-200 shadow-md rounded-lg p-4 mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <div className="w-full md:w-32">
                           {item.image && (
                             <div className="relative">
                               <img
                                 src={item.image}
                                 alt={item.name}
-                                className="w-32 h-32 object-cover rounded-lg mr-4"
+                                className="w-full h-32 object-cover rounded-lg"
                               />
                               <button
                                 onClick={() => handleDeleteImage(item.id, item.image)}
-                                className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full transition"
+                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full transition"
                               >
                                 <FaTimes size={14} />
                               </button>
                             </div>
                           )}
-                          <div>
-                            <h3 className="text-lg font-bold">{item.name}</h3>
-                            <p>{item.description}</p>
-                            <p>Preço: €{item.price}</p>
-                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold">{item.name}</h3>
+                          <p>{item.description}</p>
+                          <p>Preço: €{item.price}</p>
                         </div>
                         <div className="flex space-x-4">
                           <button onClick={() => handleEditItem(category, item)} className="text-blue-400 hover:text-blue-600 transition">
