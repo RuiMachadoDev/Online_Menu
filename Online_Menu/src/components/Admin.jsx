@@ -72,7 +72,13 @@ function Admin() {
     if (itemToDelete) {
       try {
         const imageRef = ref(storage, itemToDelete.imageUrl);
-        await deleteObject(imageRef);
+        await deleteObject(imageRef).catch((error) => {
+          if (error.code === 'storage/object-not-found') {
+            console.warn('Imagem já não existe no Storage.');
+          } else {
+            throw error;
+          }
+        });
         const categoryDoc = doc(db, 'menus', selectedCategory, 'items', itemToDelete.itemId);
         await updateDoc(categoryDoc, { image: null });
         alert('Imagem excluída com sucesso!');
@@ -138,10 +144,22 @@ function Admin() {
       const { itemId, imageUrl, categoryId } = itemToDelete;
       if (imageUrl) {
         const imageRef = ref(storage, imageUrl);
-        await deleteObject(imageRef);
+        await deleteObject(imageRef).catch((error) => {
+          if (error.code === 'storage/object-not-found') {
+            console.warn('Imagem já não existe no Storage.');
+          } else {
+            throw error;
+          }
+        });
       }
-      const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
-      await deleteDoc(itemDoc);
+      try {
+        const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
+        await deleteDoc(itemDoc);
+        alert('Item excluído com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir o item:', error);
+        alert('Falha ao excluir o item.');
+      }
       setShowDeleteModal(false);
       setItemToDelete(null);
     }
