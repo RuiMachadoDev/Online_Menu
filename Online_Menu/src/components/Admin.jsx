@@ -5,11 +5,8 @@ import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from 'fireb
 import { getAuth } from 'firebase/auth';
 import { FaEdit, FaTrash, FaTimes, FaSun, FaMoon } from 'react-icons/fa';
 import { getStorage, ref, deleteObject, uploadBytes, getDownloadURL } from 'firebase/storage';
-import Modal from 'react-modal';
 
 const categories = ['entradas', 'pratos-principais', 'sobremesas'];
-
-Modal.setAppElement('#root');
 
 function Admin() {
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
@@ -18,8 +15,6 @@ function Admin() {
   const [view, setView] = useState('list');
   const [editingItem, setEditingItem] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
   const navigate = useNavigate();
   const auth = getAuth();
   const storage = getStorage();
@@ -63,36 +58,20 @@ function Admin() {
       });
   };
 
-  const handleDeleteImage = (itemId, imageUrl) => {
-    setShowDeleteModal(true);
-    setItemToDelete({ itemId, imageUrl });
-  };
+  const handleDeleteImage = async (itemId, imageUrl) => {
+    if (window.confirm('Tem certeza que deseja excluir esta imagem?')) {
+      try {
+        const imageRef = ref(storage, imageUrl);
+        await deleteObject(imageRef);
 
-  const confirmDeleteImage = async () => {
-    if (itemToDelete) {
-        try {
-            const imageRef = ref(storage, itemToDelete.imageUrl);
-            
-            // Tenta excluir a imagem e ignora o erro caso ela não exista
-            await deleteObject(imageRef).catch((error) => {
-                if (error.code === 'storage/object-not-found') {
-                    console.warn('A imagem já foi removida do Storage.');
-                } else {
-                    throw error;
-                }
-            });
-            
-            // Atualiza o Firestore para remover o campo de imagem
-            const categoryDoc = doc(db, 'menus', selectedCategory, 'items', itemToDelete.itemId);
-            await updateDoc(categoryDoc, { image: null });
-            
-            alert('Imagem excluída com sucesso!');
-        } catch (error) {
-            console.error('Erro ao excluir a imagem:', error);
-            alert('Falha ao excluir a imagem.');
-        }
-        setShowDeleteModal(false);
-        setItemToDelete(null);
+        const categoryDoc = doc(db, 'menus', selectedCategory, 'items', itemId);
+        await updateDoc(categoryDoc, { image: null });
+
+        alert('Imagem excluída com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir a imagem:', error);
+        alert('Falha ao excluir a imagem.');
+      }
     }
   };
 
@@ -139,41 +118,19 @@ function Admin() {
     }
   };
 
-  const handleDeleteItem = (categoryId, itemId, imageUrl) => {
-    setShowDeleteModal(true);
-    setItemToDelete({ itemId, imageUrl, categoryId });
-  };
-
-  const confirmDeleteItem = async () => {
-    if (itemToDelete) {
-        const { itemId, imageUrl, categoryId } = itemToDelete;
-        
-        try {
-            if (imageUrl) {
-                const imageRef = ref(storage, imageUrl);
-                
-                // Tenta excluir a imagem e ignora o erro caso ela não exista
-                await deleteObject(imageRef).catch((error) => {
-                    if (error.code === 'storage/object-not-found') {
-                        console.warn('A imagem já foi removida do Storage.');
-                    } else {
-                        throw error;
-                    }
-                });
-            }
-            
-            // Exclui o documento do Firestore após remover a imagem do Storage
-            const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
-            await deleteDoc(itemDoc);
-            
-            alert('Item excluído com sucesso!');
-        } catch (error) {
-            console.error('Erro ao excluir o item:', error);
-            alert('Falha ao excluir o item.');
+  const handleDeleteItem = async (categoryId, itemId, imageUrl) => {
+    if (auth.currentUser) {
+      if (window.confirm('Tem certeza que deseja excluir este prato?')) {
+        const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
+        if (imageUrl) {
+          const imageRef = ref(storage, imageUrl);
+          await deleteObject(imageRef);
         }
-        
-        setShowDeleteModal(false);
-        setItemToDelete(null);
+        await deleteDoc(itemDoc);
+      }
+    } else {
+      alert('Você precisa estar autenticado para excluir um prato.');
+      navigate('/login');
     }
   };
 
@@ -204,7 +161,7 @@ function Admin() {
       <nav className={`${darkMode ? 'bg-gray-800' : 'bg-gray-300'} text-white p-4 flex justify-between items-center`}>
         <div className="flex space-x-4">
           <button onClick={() => { setView('add'); setEditingItem(null); }} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-400'} p-2 rounded transition`}>Adicionar Novo Prato</button>
-          <button onClick={() => setView('list')} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-400'} p-2 rounded transition`}>Lista de Pratos</button>
+          <button onClick={() => setView('list')} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-400'} p-2 rounded transition`}>Lista de Produtos</button>
         </div>
         <div className="flex items-center space-x-4">
           <button onClick={toggleDarkMode} className={`${darkMode ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-500 hover:bg-gray-600'} p-2 rounded-full transition`}>
@@ -213,37 +170,6 @@ function Admin() {
           <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 p-2 rounded transition">Logout</button>
         </div>
       </nav>
-
-      <Modal
-        isOpen={showDeleteModal}
-        onRequestClose={() => setShowDeleteModal(false)}
-        className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-      >
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-xs mx-auto">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4 text-center">Confirmação de Exclusão</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">Tem certeza que deseja excluir este item?</p>
-          <div className="flex justify-center space-x-3">
-            <button
-              onClick={confirmDeleteImage}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition text-sm"
-            >
-              Apagar Imagem
-            </button>
-            <button
-              onClick={confirmDeleteItem}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-sm"
-            >
-              Apagar Item
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(false)}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1 rounded transition text-sm"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       <div className="p-6">
         {view === 'add' && (
