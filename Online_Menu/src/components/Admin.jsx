@@ -252,7 +252,7 @@ function Admin() {
                         <div className="flex-1">
                           <h3 className="text-lg font-bold">{item.name}</h3>
                           <p>{item.description}</p>
-                          <p>Preço: €{item.price}</p>
+                          <p>Preço: {item.price}€</p>
                         </div>
                         <div className="flex space-x-4">
                           <button onClick={() => handleEditItem(category, item)} className="text-blue-400 hover:text-blue-600 transition">
