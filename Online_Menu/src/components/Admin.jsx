@@ -174,7 +174,7 @@ function Admin() {
       <nav className={`${darkMode ? 'bg-gray-800' : 'bg-gray-300'} text-white p-4 flex justify-between items-center`}>
         <div className="flex space-x-4">
           <button onClick={() => { setView('add'); setEditingItem(null); }} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-400'} p-2 rounded transition`}>Adicionar Novo Prato</button>
-          <button onClick={() => setView('list')} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-400'} p-2 rounded transition`}>Lista de Produtos</button>
+          <button onClick={() => setView('list')} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-400'} p-2 rounded transition`}>Lista de Pratos</button>
         </div>
         <div className="flex items-center space-x-4">
           <button onClick={toggleDarkMode} className={`${darkMode ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-500 hover:bg-gray-600'} p-2 rounded-full transition`}>
@@ -197,13 +197,13 @@ function Admin() {
               onClick={confirmDeleteImage}
               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition text-sm"
             >
-              Excluir Imagem
+              Apagar Imagem
             </button>
             <button
               onClick={confirmDeleteItem}
               className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-sm"
             >
-              Excluir Item
+              Apagar Item
             </button>
             <button
               onClick={() => setShowDeleteModal(false)}
