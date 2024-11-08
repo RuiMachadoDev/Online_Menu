@@ -70,24 +70,29 @@ function Admin() {
 
   const confirmDeleteImage = async () => {
     if (itemToDelete) {
-      try {
-        const imageRef = ref(storage, itemToDelete.imageUrl);
-        await deleteObject(imageRef).catch((error) => {
-          if (error.code === 'storage/object-not-found') {
-            console.warn('Imagem já não existe no Storage.');
-          } else {
-            throw error;
-          }
-        });
-        const categoryDoc = doc(db, 'menus', selectedCategory, 'items', itemToDelete.itemId);
-        await updateDoc(categoryDoc, { image: null });
-        alert('Imagem excluída com sucesso!');
-      } catch (error) {
-        console.error('Erro ao excluir a imagem:', error);
-        alert('Falha ao excluir a imagem.');
-      }
-      setShowDeleteModal(false);
-      setItemToDelete(null);
+        try {
+            const imageRef = ref(storage, itemToDelete.imageUrl);
+            
+            // Tenta excluir a imagem e ignora o erro caso ela não exista
+            await deleteObject(imageRef).catch((error) => {
+                if (error.code === 'storage/object-not-found') {
+                    console.warn('A imagem já foi removida do Storage.');
+                } else {
+                    throw error;
+                }
+            });
+            
+            // Atualiza o Firestore para remover o campo de imagem
+            const categoryDoc = doc(db, 'menus', selectedCategory, 'items', itemToDelete.itemId);
+            await updateDoc(categoryDoc, { image: null });
+            
+            alert('Imagem excluída com sucesso!');
+        } catch (error) {
+            console.error('Erro ao excluir a imagem:', error);
+            alert('Falha ao excluir a imagem.');
+        }
+        setShowDeleteModal(false);
+        setItemToDelete(null);
     }
   };
 
@@ -141,27 +146,34 @@ function Admin() {
 
   const confirmDeleteItem = async () => {
     if (itemToDelete) {
-      const { itemId, imageUrl, categoryId } = itemToDelete;
-      if (imageUrl) {
-        const imageRef = ref(storage, imageUrl);
-        await deleteObject(imageRef).catch((error) => {
-          if (error.code === 'storage/object-not-found') {
-            console.warn('Imagem já não existe no Storage.');
-          } else {
-            throw error;
-          }
-        });
-      }
-      try {
-        const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
-        await deleteDoc(itemDoc);
-        alert('Item excluído com sucesso!');
-      } catch (error) {
-        console.error('Erro ao excluir o item:', error);
-        alert('Falha ao excluir o item.');
-      }
-      setShowDeleteModal(false);
-      setItemToDelete(null);
+        const { itemId, imageUrl, categoryId } = itemToDelete;
+        
+        try {
+            if (imageUrl) {
+                const imageRef = ref(storage, imageUrl);
+                
+                // Tenta excluir a imagem e ignora o erro caso ela não exista
+                await deleteObject(imageRef).catch((error) => {
+                    if (error.code === 'storage/object-not-found') {
+                        console.warn('A imagem já foi removida do Storage.');
+                    } else {
+                        throw error;
+                    }
+                });
+            }
+            
+            // Exclui o documento do Firestore após remover a imagem do Storage
+            const itemDoc = doc(db, 'menus', categoryId, 'items', itemId);
+            await deleteDoc(itemDoc);
+            
+            alert('Item excluído com sucesso!');
+        } catch (error) {
+            console.error('Erro ao excluir o item:', error);
+            alert('Falha ao excluir o item.');
+        }
+        
+        setShowDeleteModal(false);
+        setItemToDelete(null);
     }
   };
 
