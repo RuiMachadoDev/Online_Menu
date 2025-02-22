@@ -3,6 +3,8 @@ import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import MenuItem from './MenuItem';
 import logo from '../assets/Logo.png';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faThumbsUp } from '@fortawesome/free-solid-svg-icons';
 
 function Menu() {
   const [menuItems, setMenuItems] = useState([]);
@@ -87,6 +89,17 @@ function Menu() {
           ) : (
             <p className="text-gray-300 text-center">Nenhuma categoria disponível.</p>
           )}
+          <div className="mt-[200px] text-center">
+            <a 
+              href="https://g.page/r/CWfxW2kjOw7fEAE/review" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-[#e1cbb1] hover:text-[#f5f5f5] transition-colors duration-300"
+            >
+              <FontAwesomeIcon icon={faThumbsUp} className="text-2xl" />
+              <p className="text-sm mt-2">Avalie a sua experiência</p>
+            </a>
+          </div>
         </>
       )}
     </div>

@@ -9,6 +9,9 @@
     "vercel-build": "vite build"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "autoprefixer": "^10.4.20",
     "firebase": "^10.13.0",
     "react": "^18.0.0",
