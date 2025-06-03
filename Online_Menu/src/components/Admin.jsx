@@ -10,7 +10,7 @@ const categories = ['entradas', 'pratos-principais', 'sobremesas'];
 
 function Admin() {
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
-  const [newItem, setNewItem] = useState({ name: '', description: '', price: '', image: null });
+  const [newItem, setNewItem] = useState({ name: '', description: '', price: '', image: null, type: '' });
   const [menuItems, setMenuItems] = useState([]);
   const [view, setView] = useState('list');
   const [editingItem, setEditingItem] = useState(null);
@@ -34,8 +34,8 @@ function Admin() {
             id: itemDoc.id,
             ...itemDoc.data()
           }));
-          setMenuItems(prevItems => 
-            prevItems.map(cat => 
+          setMenuItems(prevItems =>
+            prevItems.map(cat =>
               cat.id === category.id ? { ...cat, items } : cat
             )
           );
@@ -50,12 +50,8 @@ function Admin() {
 
   const handleLogout = () => {
     auth.signOut()
-      .then(() => {
-        navigate('/login');
-      })
-      .catch((error) => {
-        console.error("Erro ao fazer logout:", error);
-      });
+      .then(() => navigate('/login'))
+      .catch((error) => console.error("Erro ao fazer logout:", error));
   };
 
   const handleDeleteImage = async (itemId, imageUrl) => {
@@ -79,7 +75,7 @@ function Admin() {
     if (auth.currentUser) {
       if (newItem.name && newItem.description && newItem.price) {
         let imageUrl = null;
-        
+
         if (newItem.image) {
           try {
             const imageRef = ref(storage, `menu-images/${newItem.image.name}`);
@@ -97,6 +93,7 @@ function Admin() {
           description: newItem.description,
           price: newItem.price,
           image: imageUrl,
+          ...(selectedCategory === 'pratos-principais' && { type: newItem.type }),
         };
 
         const categoryDoc = collection(db, 'menus', selectedCategory, 'items');
@@ -106,7 +103,7 @@ function Admin() {
         } else {
           await addDoc(categoryDoc, itemData);
         }
-        setNewItem({ name: '', description: '', price: '', image: null });
+        setNewItem({ name: '', description: '', price: '', image: null, type: '' });
         alert('Prato salvo com sucesso!');
         setView('list');
       } else {
@@ -136,14 +133,14 @@ function Admin() {
 
   const handleEditItem = (categoryId, item) => {
     setEditingItem({ ...item, categoryId });
-    setNewItem({ name: item.name, description: item.description, price: item.price, image: null });
+    setNewItem({ name: item.name, description: item.description, price: item.price, image: null, type: item.type || '' });
     setSelectedCategory(categoryId);
     setView('add');
   };
 
   const handleCancel = () => {
     setEditingItem(null);
-    setNewItem({ name: '', description: '', price: '', image: null });
+    setNewItem({ name: '', description: '', price: '', image: null, type: '' });
     setView('list');
   };
 
@@ -211,6 +208,17 @@ function Admin() {
               onChange={handleFileChange}
               className="block w-full text-gray-400 mb-4"
             />
+            {selectedCategory === 'pratos-principais' && (
+              <select
+                value={newItem.type}
+                onChange={(e) => setNewItem({ ...newItem, type: e.target.value })}
+                className={`block w-full p-3 border rounded mb-4 ${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-900'} focus:outline-none focus:border-gray-500`}
+              >
+                <option value="">Selecione o tipo de prato</option>
+                <option value="carne">Carne</option>
+                <option value="peixe">Peixe</option>
+              </select>
+            )}
             <div className="flex justify-end space-x-2">
               <button onClick={handleAddItem} className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition text-sm">
                 {editingItem ? 'Salvar' : 'Adicionar'}

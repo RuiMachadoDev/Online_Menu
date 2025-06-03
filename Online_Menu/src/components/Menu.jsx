@@ -25,8 +25,8 @@ function Menu() {
             id: itemDoc.id,
             ...itemDoc.data()
           }));
-          setMenuItems(prevItems => 
-            prevItems.map(cat => 
+          setMenuItems(prevItems =>
+            prevItems.map(cat =>
               cat.id === category.id ? { ...cat, items } : cat
             )
           );
@@ -47,19 +47,19 @@ function Menu() {
       {/* Spinner de Carregamento Inicial com Logo */}
       {loading ? (
         <div className="flex flex-col justify-center items-center min-h-screen">
-          <img src={logo} alt="Logo do Restaurante" className="w-36 h-auto mb-6 animate-pulse" />
+          <img src={logo} alt="Logo do Restaurante" className="w-60 h-auto mb-6 animate-pulse" />
           <div className="w-16 h-16 border-4 border-t-transparent border-[#e1cbb1] rounded-full animate-spin"></div>
         </div>
       ) : (
         <>
           {/* Logo do Restaurante */}
           <div className="flex justify-center mb-10">
-            <img src={logo} alt="Logo do Restaurante" className="w-36 h-auto" />
+            <img src={logo} alt="Logo do Restaurante" className="w-60 h-auto" />
           </div>
-          
+
           {/* Título Principal */}
           <h1 className="text-4xl font-bold text-center mb-10 text-[#e1cbb1]">Menu</h1>
-          
+
           {/* Categorias e Itens */}
           {menuItems.length > 0 ? (
             menuItems.map(({ category, items }) => (
@@ -70,15 +70,51 @@ function Menu() {
                   </summary>
                   <div className="mt-4 space-y-6">
                     {items.length > 0 ? (
-                      items.map(item => (
-                        <MenuItem
-                          key={item.id}
-                          name={item.name}
-                          description={item.description}
-                          price={item.price}
-                          image={item.image}
-                        />
-                      ))
+                      category === 'pratos-principais' ? (
+                        <>
+                          {/* Pratos de Carne */}
+                          <h3 className="text-xl font-semibold mt-2 mb-2">🥩 Pratos de Carne</h3>
+                          {items.filter(item => item.type === 'carne').length > 0 ? (
+                            items.filter(item => item.type === 'carne').map(item => (
+                              <MenuItem
+                                key={item.id}
+                                name={item.name}
+                                description={item.description}
+                                price={item.price}
+                                image={item.image}
+                              />
+                            ))
+                          ) : (
+                            <p className="text-gray-300">Nenhum prato de carne disponível.</p>
+                          )}
+
+                          {/* Pratos de Peixe */}
+                          <h3 className="text-xl font-semibold mt-6 mb-2">🐟 Pratos de Peixe</h3>
+                          {items.filter(item => item.type === 'peixe').length > 0 ? (
+                            items.filter(item => item.type === 'peixe').map(item => (
+                              <MenuItem
+                                key={item.id}
+                                name={item.name}
+                                description={item.description}
+                                price={item.price}
+                                image={item.image}
+                              />
+                            ))
+                          ) : (
+                            <p className="text-gray-300">Nenhum prato de peixe disponível.</p>
+                          )}
+                        </>
+                      ) : (
+                        items.map(item => (
+                          <MenuItem
+                            key={item.id}
+                            name={item.name}
+                            description={item.description}
+                            price={item.price}
+                            image={item.image}
+                          />
+                        ))
+                      )
                     ) : (
                       <p className="text-gray-300">Nenhum prato disponível nesta categoria.</p>
                     )}
@@ -89,11 +125,13 @@ function Menu() {
           ) : (
             <p className="text-gray-300 text-center">Nenhuma categoria disponível.</p>
           )}
+
+          {/* Avaliação */}
           <div className="mt-[200px] text-center">
-            <a 
-              href="https://g.page/r/CWfxW2kjOw7fEAE/review" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://g.page/r/CcGnaqo-0IpUEBM/review"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-[#e1cbb1] hover:text-[#f5f5f5] transition-colors duration-300"
             >
               <FontAwesomeIcon icon={faThumbsUp} className="text-2xl" />
